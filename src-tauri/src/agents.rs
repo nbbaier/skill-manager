@@ -29,6 +29,7 @@ pub fn get_agents() -> Vec<Agent> {
         Agent::new("amp", "Amp", ".config/agents/skills"),
         Agent::new("droid", "Droid", ".factory/skills"),
         Agent::new("pi", "Pi", ".pi/agent/skills"),
+        Agent::new("opencode", "OpenCode", ".config/opencode/skills"),
     ]
 }
 
@@ -39,7 +40,7 @@ mod tests {
     #[test]
     fn test_agent_count() {
         let agents = get_agents();
-        assert_eq!(agents.len(), 8);
+        assert_eq!(agents.len(), 9);
     }
 
     #[test]
@@ -76,6 +77,7 @@ mod tests {
         assert!(names.contains(&"Amp"));
         assert!(names.contains(&"Droid"));
         assert!(names.contains(&"Pi"));
+        assert!(names.contains(&"OpenCode"));
     }
 
     #[test]
