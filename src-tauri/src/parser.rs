@@ -12,7 +12,7 @@ pub struct SkillFrontmatter {
     pub license: Option<String>,
     #[serde(default)]
     pub compatibility: Option<Vec<String>>,
-    #[serde(default, rename = "allowed-tools")]
+    #[serde(default, alias = "allowed-tools")]
     pub allowed_tools: Option<Vec<String>>,
     #[serde(default)]
     pub metadata: Option<HashMap<String, serde_yaml::Value>>,
