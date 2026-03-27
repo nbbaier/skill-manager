@@ -15,7 +15,7 @@ pub struct SkillFrontmatter {
     #[serde(default, alias = "allowed-tools")]
     pub allowed_tools: Option<Vec<String>>,
     #[serde(default)]
-    pub metadata: Option<HashMap<String, serde_yaml::Value>>,
+    pub metadata: Option<HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -26,7 +26,7 @@ pub struct ParsedSkill {
 
 pub fn parse_skill_md(content: &str) -> ParsedSkill {
     let trimmed = content.trim_start();
-    if !trimmed.starts_with("---") {
+    if !trimmed.starts_with("---\n") && !trimmed.starts_with("---\r\n") {
         return ParsedSkill {
             frontmatter: SkillFrontmatter::default(),
             body: content.to_string(),
@@ -38,10 +38,10 @@ pub fn parse_skill_md(content: &str) -> ParsedSkill {
     if let Some(close_pos) = after_open.find("\n---") {
         let yaml_str = &after_open[..close_pos];
         let body_start = close_pos + 4; // "\n---"
-        let body = after_open[body_start..].trim_start_matches('\n').to_string();
+        let body = after_open[body_start..].trim_start_matches(['\n', '\r']).to_string();
 
         let frontmatter: SkillFrontmatter =
-            serde_yaml::from_str(yaml_str).unwrap_or_default();
+            serde_yml::from_str(yaml_str).unwrap_or_default();
 
         ParsedSkill { frontmatter, body }
     } else {

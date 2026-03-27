@@ -9,28 +9,31 @@ pub struct Agent {
 }
 
 impl Agent {
-    fn new(id: &str, name: &str, relative_path: &str) -> Self {
-        let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("~"));
-        Self {
+    fn new(id: &str, name: &str, relative_path: &str) -> Option<Self> {
+        let home = dirs::home_dir()?;
+        Some(Self {
             id: id.to_string(),
             name: name.to_string(),
             global_path: home.join(relative_path),
-        }
+        })
     }
 }
 
 pub fn get_agents() -> Vec<Agent> {
-    vec![
-        Agent::new("claude-code", "Claude Code", ".claude/skills"),
-        Agent::new("codex", "Codex", ".codex/skills"),
-        Agent::new("cursor", "Cursor", ".cursor/skills"),
-        Agent::new("gemini-cli", "Gemini CLI", ".gemini/skills"),
-        Agent::new("github-copilot", "GitHub Copilot", ".copilot/skills"),
-        Agent::new("amp", "Amp", ".config/agents/skills"),
-        Agent::new("droid", "Droid", ".factory/skills"),
-        Agent::new("pi", "Pi", ".pi/agent/skills"),
-        Agent::new("opencode", "OpenCode", ".config/opencode/skills"),
+    [
+        ("claude-code", "Claude Code", ".claude/skills"),
+        ("codex", "Codex", ".codex/skills"),
+        ("cursor", "Cursor", ".cursor/skills"),
+        ("gemini-cli", "Gemini CLI", ".gemini/skills"),
+        ("github-copilot", "GitHub Copilot", ".copilot/skills"),
+        ("amp", "Amp", ".config/agents/skills"),
+        ("droid", "Droid", ".factory/skills"),
+        ("pi", "Pi", ".pi/agent/skills"),
+        ("opencode", "OpenCode", ".config/opencode/skills"),
     ]
+    .into_iter()
+    .filter_map(|(id, name, path)| Agent::new(id, name, path))
+    .collect()
 }
 
 #[cfg(test)]

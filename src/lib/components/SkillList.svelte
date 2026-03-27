@@ -20,6 +20,10 @@
 			<div class="p-4">
 				<p class="text-sm text-muted-foreground">Scanning skills…</p>
 			</div>
+		{:else if appState.error}
+			<div class="p-4">
+				<p class="text-sm text-destructive">Failed to load skills: {appState.error}</p>
+			</div>
 		{:else if filteredSkills.length === 0}
 			<div class="p-4">
 				<p class="text-sm text-muted-foreground">No skills found.</p>

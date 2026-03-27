@@ -48,13 +48,9 @@ pub fn scan_agent_skills(agent: &Agent) -> Vec<DiscoveredSkill> {
             .map(|n| n.to_string_lossy().to_string())
             .unwrap_or_default();
 
-        let is_symlink = entry
-            .metadata()
+        let is_symlink = std::fs::symlink_metadata(&path)
             .map(|m| m.file_type().is_symlink())
-            .unwrap_or(false)
-            || std::fs::symlink_metadata(&path)
-                .map(|m| m.file_type().is_symlink())
-                .unwrap_or(false);
+            .unwrap_or(false);
 
         let canonical_path = if is_symlink {
             std::fs::canonicalize(&path).ok()
