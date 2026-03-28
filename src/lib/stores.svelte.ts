@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import type { Agent, DiscoveredSkill } from './types.js';
 
 export const appState = $state({
@@ -26,6 +27,38 @@ export async function loadData() {
 	} finally {
 		appState.loading = false;
 	}
+}
+
+/**
+ * Re-scan skills without showing the loading spinner.
+ * Preserves the current selection if the skill still exists after refresh.
+ */
+async function refreshSkills() {
+	try {
+		const skills = await invoke<DiscoveredSkill[]>('scan_skills');
+		appState.skills = skills;
+
+		// Clear selected skill if it no longer exists
+		if (
+			appState.selectedSkillPath &&
+			!skills.some((s) => s.path === appState.selectedSkillPath)
+		) {
+			appState.selectedSkillPath = null;
+		}
+	} catch (e) {
+		console.error('Failed to refresh skills:', e);
+	}
+}
+
+/**
+ * Subscribe to file system change events from the Rust backend.
+ * Returns an unlisten function for cleanup.
+ */
+export async function listenForChanges(): Promise<() => void> {
+	const unlisten = await listen('skills-changed', () => {
+		refreshSkills();
+	});
+	return unlisten;
 }
 
 export function selectAgent(agentId: string | null) {
