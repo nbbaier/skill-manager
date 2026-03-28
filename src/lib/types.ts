@@ -27,3 +27,10 @@ export interface DiscoveredSkill {
 	is_symlink: boolean;
 	canonical_path: string | null;
 }
+
+export interface FileEntry {
+	name: string;
+	path: string;
+	is_dir: boolean;
+	children: FileEntry[];
+}
