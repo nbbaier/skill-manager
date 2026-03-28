@@ -48,7 +48,10 @@
 			fileTreeError = e instanceof Error ? e.message : String(e);
 			fileTree = [];
 		} finally {
-			fileTreeLoading = false;
+			const currentPath = skill?.canonical_path ?? skill?.path;
+			if (currentPath === expectedPath) {
+				fileTreeLoading = false;
+			}
 		}
 	}
 </script>
