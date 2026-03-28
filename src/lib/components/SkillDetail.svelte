@@ -1,9 +1,78 @@
 <script lang="ts">
+	import { invoke } from '@tauri-apps/api/core';
+	import { marked } from 'marked';
 	import { getSelectedSkill, getSkillAgents } from '$lib/stores.svelte.js';
+	import type { FileEntry } from '$lib/types.js';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
+	import FolderIcon from '@lucide/svelte/icons/folder';
+	import FileIcon from '@lucide/svelte/icons/file';
 
 	const skill = $derived(getSelectedSkill());
 	const agents = $derived(skill ? getSkillAgents(skill) : []);
+
+	let fileTree = $state<FileEntry[]>([]);
+	let fileTreeLoading = $state(false);
+	let fileTreeError = $state<string | null>(null);
+
+	let renderedBody = $derived.by(() => {
+		if (!skill?.parsed.body.trim()) return '';
+		return marked.parse(skill.parsed.body, { async: false }) as string;
+	});
+
+	let metadataEntries = $derived.by(() => {
+		if (!skill?.parsed.frontmatter.metadata) return [];
+		return Object.entries(skill.parsed.frontmatter.metadata);
+	});
+
+	$effect(() => {
+		if (skill) {
+			loadFileTree(skill.canonical_path ?? skill.path);
+		} else {
+			fileTree = [];
+		}
+	});
+
+	async function loadFileTree(path: string) {
+		fileTreeLoading = true;
+		fileTreeError = null;
+		try {
+			fileTree = await invoke<FileEntry[]>('list_skill_files', { path });
+		} catch (e) {
+			fileTreeError = e instanceof Error ? e.message : String(e);
+			fileTree = [];
+		} finally {
+			fileTreeLoading = false;
+		}
+	}
 </script>
+
+{#snippet fileTreeNode(entries: FileEntry[], depth: number)}
+	{#each entries as entry}
+		{#if entry.is_dir}
+			<details class="group" open={depth < 2}>
+				<summary
+					class="flex cursor-pointer items-center gap-1 rounded px-1 py-0.5 text-xs hover:bg-muted"
+					style="padding-left: {depth * 12 + 4}px"
+				>
+					<ChevronRight
+						class="h-3 w-3 shrink-0 transition-transform group-open:rotate-90"
+					/>
+					<FolderIcon class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+					<span class="truncate">{entry.name}</span>
+				</summary>
+				{@render fileTreeNode(entry.children, depth + 1)}
+			</details>
+		{:else}
+			<div
+				class="flex items-center gap-1 rounded px-1 py-0.5 text-xs hover:bg-muted"
+				style="padding-left: {depth * 12 + 4 + 16}px"
+			>
+				<FileIcon class="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+				<span class="truncate">{entry.name}</span>
+			</div>
+		{/if}
+	{/each}
+{/snippet}
 
 <div class="flex h-full flex-col">
 	<div class="border-b border-border px-4 py-3">
@@ -101,19 +170,129 @@
 									</td>
 								</tr>
 							{/if}
+							{#if metadataEntries.length > 0}
+								<tr class="border-b border-border">
+									<td class="px-3 py-2 font-medium text-muted-foreground">Metadata</td>
+									<td class="px-3 py-2">
+										<div class="space-y-1">
+											{#each metadataEntries as [key, value]}
+												<div class="text-xs">
+													<span class="font-medium">{key}:</span>
+													<span class="font-mono text-muted-foreground">
+														{typeof value === 'object'
+															? JSON.stringify(value)
+															: String(value)}
+													</span>
+												</div>
+											{/each}
+										</div>
+									</td>
+								</tr>
+							{/if}
 						</tbody>
 					</table>
 				</div>
 
-				<!-- Markdown body -->
-				{#if skill.parsed.body.trim()}
+				<!-- Rendered markdown body -->
+				{#if renderedBody}
 					<div>
 						<h4 class="mb-2 text-sm font-semibold text-muted-foreground">Instructions</h4>
-						<pre
-							class="whitespace-pre-wrap rounded-md border border-border bg-muted/50 p-3 font-mono text-xs leading-relaxed">{skill.parsed.body}</pre>
+						<div
+							class="prose prose-sm dark:prose-invert max-w-none rounded-md border border-border p-4"
+						>
+							{@html renderedBody}
+						</div>
 					</div>
 				{/if}
+
+				<!-- File tree -->
+				<div>
+					<h4 class="mb-2 text-sm font-semibold text-muted-foreground">Files</h4>
+					<div class="rounded-md border border-border p-2">
+						{#if fileTreeLoading}
+							<p class="px-2 py-1 text-xs text-muted-foreground">Loading...</p>
+						{:else if fileTreeError}
+							<p class="px-2 py-1 text-xs text-destructive">{fileTreeError}</p>
+						{:else if fileTree.length === 0}
+							<p class="px-2 py-1 text-xs text-muted-foreground">No files found</p>
+						{:else}
+							{@render fileTreeNode(fileTree, 0)}
+						{/if}
+					</div>
+				</div>
 			</div>
 		{/if}
 	</div>
 </div>
+
+<style>
+	:global(.prose h1) {
+		font-size: 1.25rem;
+		font-weight: 700;
+		margin-top: 0;
+		margin-bottom: 0.5rem;
+	}
+	:global(.prose h2) {
+		font-size: 1.1rem;
+		font-weight: 600;
+		margin-top: 1rem;
+		margin-bottom: 0.5rem;
+	}
+	:global(.prose h3) {
+		font-size: 1rem;
+		font-weight: 600;
+		margin-top: 0.75rem;
+		margin-bottom: 0.25rem;
+	}
+	:global(.prose p) {
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+	:global(.prose ul) {
+		list-style-type: disc;
+		padding-left: 1.5rem;
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+	:global(.prose ol) {
+		list-style-type: decimal;
+		padding-left: 1.5rem;
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+	:global(.prose li) {
+		margin-top: 0.25rem;
+		margin-bottom: 0.25rem;
+	}
+	:global(.prose code) {
+		font-size: 0.85em;
+		background-color: var(--color-muted);
+		padding: 0.15em 0.3em;
+		border-radius: 0.25rem;
+	}
+	:global(.prose pre) {
+		background-color: var(--color-muted);
+		border: 1px solid var(--color-border);
+		border-radius: 0.375rem;
+		padding: 0.75rem;
+		overflow-x: auto;
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+	}
+	:global(.prose pre code) {
+		background: none;
+		padding: 0;
+		font-size: 0.8em;
+	}
+	:global(.prose a) {
+		color: var(--color-accent-foreground);
+		text-decoration: underline;
+	}
+	:global(.prose blockquote) {
+		border-left: 3px solid var(--color-border);
+		padding-left: 0.75rem;
+		margin-top: 0.5rem;
+		margin-bottom: 0.5rem;
+		color: var(--color-muted-foreground);
+	}
+</style>
