@@ -34,8 +34,7 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
-/// Holds the file watcher handle so it stays alive for the app's lifetime.
-/// When the app shuts down, this is dropped, which stops all watchers.
+/// Holds the file watcher thread handle so it stays alive for the app's lifetime.
 struct WatcherState {
-    _watcher: Option<notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>>,
+    _watcher: Option<std::thread::JoinHandle<()>>,
 }
