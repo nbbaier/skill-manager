@@ -9,13 +9,10 @@
 	onMount(() => {
 		loadData();
 
-		let unlisten: (() => void) | undefined;
-		listenForChanges().then((fn) => {
-			unlisten = fn;
-		});
+		const unlistenPromise = listenForChanges();
 
 		return () => {
-			unlisten?.();
+			unlistenPromise.then((fn) => fn());
 		};
 	});
 </script>
