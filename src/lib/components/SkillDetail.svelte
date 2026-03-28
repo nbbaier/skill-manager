@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { invoke } from '@tauri-apps/api/core';
 	import { marked } from 'marked';
+	import DOMPurify from 'dompurify';
 	import { getSelectedSkill, getSkillAgents } from '$lib/stores.svelte.js';
 	import type { FileEntry } from '$lib/types.js';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -16,7 +17,7 @@
 
 	let renderedBody = $derived.by(() => {
 		if (!skill?.parsed.body.trim()) return '';
-		return marked.parse(skill.parsed.body, { async: false }) as string;
+		return DOMPurify.sanitize(marked.parse(skill.parsed.body, { async: false }) as string);
 	});
 
 	let metadataEntries = $derived.by(() => {
@@ -35,9 +36,15 @@
 	async function loadFileTree(path: string) {
 		fileTreeLoading = true;
 		fileTreeError = null;
+		const expectedPath = path;
 		try {
-			fileTree = await invoke<FileEntry[]>('list_skill_files', { path });
+			const result = await invoke<FileEntry[]>('list_skill_files', { path });
+			const currentPath = skill?.canonical_path ?? skill?.path;
+			if (currentPath !== expectedPath) return;
+			fileTree = result;
 		} catch (e) {
+			const currentPath = skill?.canonical_path ?? skill?.path;
+			if (currentPath !== expectedPath) return;
 			fileTreeError = e instanceof Error ? e.message : String(e);
 			fileTree = [];
 		} finally {

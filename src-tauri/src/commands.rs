@@ -11,7 +11,13 @@ pub struct FileEntry {
     pub children: Vec<FileEntry>,
 }
 
-fn read_dir_tree(path: &std::path::Path) -> Vec<FileEntry> {
+const MAX_DEPTH: u32 = 10;
+
+fn read_dir_tree(path: &std::path::Path, depth: u32) -> Vec<FileEntry> {
+    if depth > MAX_DEPTH {
+        return Vec::new();
+    }
+
     let mut entries = Vec::new();
     let Ok(read_dir) = std::fs::read_dir(path) else {
         return entries;
@@ -26,12 +32,22 @@ fn read_dir_tree(path: &std::path::Path) -> Vec<FileEntry> {
             .file_name()
             .to_string_lossy()
             .to_string();
+
+        // Use symlink_metadata to detect symlinks without following them
+        let metadata = match std::fs::symlink_metadata(&entry_path) {
+            Ok(m) => m,
+            Err(_) => continue,
+        };
+
+        let is_symlink = metadata.file_type().is_symlink();
         let is_dir = entry_path.is_dir();
-        let children = if is_dir {
-            read_dir_tree(&entry_path)
+
+        let children = if is_dir && !is_symlink {
+            read_dir_tree(&entry_path, depth + 1)
         } else {
             Vec::new()
         };
+
         entries.push(FileEntry {
             name,
             path: entry_path,
@@ -60,5 +76,5 @@ pub fn list_skill_files(path: String) -> Result<Vec<FileEntry>, String> {
     if !dir.exists() || !dir.is_dir() {
         return Err(format!("Directory not found: {}", path));
     }
-    Ok(read_dir_tree(&dir))
+    Ok(read_dir_tree(&dir, 0))
 }
