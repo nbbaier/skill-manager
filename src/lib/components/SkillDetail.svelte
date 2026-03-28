@@ -27,7 +27,7 @@
 
 	$effect(() => {
 		if (skill) {
-			loadFileTree(skill.canonical_path ?? skill.path);
+			loadFileTree(skill.path);
 		} else {
 			fileTree = [];
 		}
@@ -39,16 +39,16 @@
 		const expectedPath = path;
 		try {
 			const result = await invoke<FileEntry[]>('list_skill_files', { path });
-			const currentPath = skill?.canonical_path ?? skill?.path;
+			const currentPath = skill?.path;
 			if (currentPath !== expectedPath) return;
 			fileTree = result;
 		} catch (e) {
-			const currentPath = skill?.canonical_path ?? skill?.path;
+			const currentPath = skill?.path;
 			if (currentPath !== expectedPath) return;
 			fileTreeError = e instanceof Error ? e.message : String(e);
 			fileTree = [];
 		} finally {
-			const currentPath = skill?.canonical_path ?? skill?.path;
+			const currentPath = skill?.path;
 			if (currentPath === expectedPath) {
 				fileTreeLoading = false;
 			}

@@ -81,13 +81,21 @@ pub fn list_skill_files(path: String) -> Result<Vec<FileEntry>, String> {
         return Err(format!("Directory not found: {}", path));
     }
 
-    // Validate that path is inside a known agent skill directory
-    let canonical = std::fs::canonicalize(&dir)
-        .map_err(|e| format!("Failed to resolve path: {e}"))?;
+    // Validate that path is inside a known agent skill directory.
+    // We canonicalize the *parent* of the path (not the path itself) so that
+    // a symlink AT the skill directory level still passes validation —
+    // the symlink lives inside the agent root even if its target doesn't.
+    let parent = dir.parent()
+        .ok_or_else(|| "Path has no parent directory".to_string())?;
+    let canonical_parent = std::fs::canonicalize(parent)
+        .map_err(|e| format!("Failed to resolve parent path: {e}"))?;
+    let canonical_with_leaf = canonical_parent.join(
+        dir.file_name().ok_or_else(|| "Path has no file name".to_string())?
+    );
     let agents = get_agents();
     let is_allowed = agents.iter().any(|agent| {
         std::fs::canonicalize(&agent.global_path)
-            .map(|agent_root| canonical.starts_with(&agent_root))
+            .map(|agent_root| canonical_with_leaf.starts_with(&agent_root))
             .unwrap_or(false)
     });
     if !is_allowed {
