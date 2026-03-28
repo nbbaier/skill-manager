@@ -4,6 +4,8 @@ mod parser;
 mod scanner;
 mod watcher;
 
+use tauri::Manager;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -20,7 +22,7 @@ pub fn run() {
             // The watcher handle is stored in managed state so it lives
             // for the lifetime of the application and is cleaned up on shutdown.
             let watcher = watcher::start_watchers(app.handle().clone());
-            app.manage(WatcherState(watcher));
+            app.manage(WatcherState { _watcher: watcher });
 
             Ok(())
         })
@@ -34,6 +36,6 @@ pub fn run() {
 
 /// Holds the file watcher handle so it stays alive for the app's lifetime.
 /// When the app shuts down, this is dropped, which stops all watchers.
-struct WatcherState(
-    Option<notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>>,
-);
+struct WatcherState {
+    _watcher: Option<notify_debouncer_mini::Debouncer<notify::RecommendedWatcher>>,
+}
