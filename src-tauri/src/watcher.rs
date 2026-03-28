@@ -56,7 +56,7 @@ pub fn start_watchers(
                     // Only emit if there are meaningful events (not just access)
                     let has_changes = events
                         .iter()
-                        .any(|e| matches!(e.kind, DebouncedEventKind::Any));
+                        .any(|e| matches!(e.kind, DebouncedEventKind::Any | DebouncedEventKind::AnyContinuous));
 
                     if has_changes {
                         info!("File system changes detected, notifying frontend");
