@@ -4,10 +4,16 @@
 	import AgentSidebar from '$lib/components/AgentSidebar.svelte';
 	import SkillList from '$lib/components/SkillList.svelte';
 	import SkillDetail from '$lib/components/SkillDetail.svelte';
-	import { loadData } from '$lib/stores.svelte.js';
+	import { loadData, listenForChanges } from '$lib/stores.svelte.js';
 
 	onMount(() => {
 		loadData();
+
+		const unlistenPromise = listenForChanges();
+
+		return () => {
+			unlistenPromise.then((fn) => fn());
+		};
 	});
 </script>
 
